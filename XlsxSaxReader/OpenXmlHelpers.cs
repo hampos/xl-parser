@@ -3,60 +3,52 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 
 namespace XlsxSaxReader
 {
-    public class OpenXmlHelpers
+    internal class OpenXmlHelpers
     {
-        public static OpenXmlReader GetOpenXmlReader(WorksheetPart worksheetPart)
+        internal static OpenXmlReader GetOpenXmlReader(WorksheetPart worksheetPart)
         {
             return OpenXmlReader.Create(worksheetPart);
         }
 
-        public static Dictionary<uint, string> GetCellFormats(SpreadsheetDocument spreadsheetDoc)
+        internal static XlsxSheetDimensions GetDimensions(string path)
         {
-            Dictionary<uint, string> formatMappings = new Dictionary<uint, string>();
-
-            var stylePart = spreadsheetDoc.WorkbookPart.WorkbookStylesPart;
-
-            var numFormatsParentNodes = stylePart.Stylesheet.ChildElements.OfType<NumberingFormats>();
-
-            foreach (var numFormatParentNode in numFormatsParentNodes)
+            using (var spreadsheetDoc = SpreadsheetDocument.Open(path, false))
             {
-                var formatNodes = numFormatParentNode.ChildElements.OfType<NumberingFormat>();
-                foreach (var formatNode in formatNodes)
+                var sheet = spreadsheetDoc.WorkbookPart.Workbook.Descendants<Sheet>().First();
+                var worksheetPart = (WorksheetPart)spreadsheetDoc.WorkbookPart.GetPartById(sheet.Id);
+
+                using (var reader = GetOpenXmlReader(worksheetPart))
                 {
-                    formatMappings.Add(formatNode.NumberFormatId.Value, formatNode.FormatCode);
+                    while (reader.Read())
+                    {
+                        if (reader.ElementType != typeof(SheetDimension)) continue;
+
+                        var sheetDimension = (SheetDimension)reader.LoadCurrentElement();
+                        var attr = sheetDimension.GetAttributes().First().Value;
+                        var dimensions = attr.Split(':');
+
+                        return new XlsxSheetDimensions(
+                            GetRowCount(dimensions[0]),
+                            GetRowCount(dimensions[1]),
+                            GetColNum(dimensions[0]),
+                            GetColNum(dimensions[1])
+                            );
+                    }
+
+                    return null;
                 }
             }
-
-            return formatMappings;
         }
 
-        public static XlsxSheetDimensions GetDimensions(OpenXmlReader reader)
+        internal static void SkipRows(OpenXmlReader reader, int page, int pageSize)
         {
-            while (reader.Read())
-            {
-                if (reader.ElementType != typeof(SheetDimension)) continue;
+            MoveReaderToFirstRow(reader);
 
-                var sheetDimension = (SheetDimension)reader.LoadCurrentElement();
-                var attr = sheetDimension.GetAttributes().First().Value;
-                var dimensions = attr.Split(':');
-
-                return new XlsxSheetDimensions(
-                    GetRowCount(dimensions[0]),
-                    GetRowCount(dimensions[1]),
-                    GetColNum(dimensions[0]),
-                    GetColNum(dimensions[1])
-                    );
-            }
-
-            return null;
-        }
-
-        public static void SkipRows(OpenXmlReader reader, int page, int pageSize)
-        {
             if (page == 0) return;
             if (pageSize == 0) return;
 
@@ -72,44 +64,170 @@ namespace XlsxSaxReader
             while (Convert.ToInt32(rowNum) < startIndex && reader.ReadNextSibling());
         }
 
-        public static bool TryGetFormat(SpreadsheetDocument spreadsheetDoc, CellFormat cellformat, out string format)
+        internal static List<List<string>> GetRows(int page, int pageSize, XlsxSheetDimensions dimensions, OpenXmlReader reader, Stylesheet styleSheet, SharedStringTable sharedStringTable)
+        {
+            if (reader.EOF) return new List<List<string>>();
+
+            var result = new List<List<string>>(pageSize);
+            do
+            {
+                var row = GetRow(page, pageSize, dimensions, reader, styleSheet, sharedStringTable);
+                if (row == null)
+                    break;
+
+                result.Add(row);
+            }
+            while (reader.ReadNextSibling() && result.Count < pageSize);
+
+            return result;
+        }
+
+        internal static void MoveReaderToFirstRow(OpenXmlReader reader)
+        {
+            while (reader.Read())
+            {
+                if (reader.ElementType != typeof(Row)) continue;
+
+                break;
+            }
+        }
+
+        internal static List<string> GetRow(int page, int pageSize, XlsxSheetDimensions dimensions, OpenXmlReader reader, Stylesheet styleSheet, SharedStringTable sharedStringTable)
+        {
+            if (reader.EOF) return null;
+
+            var rowValues = Enumerable.Repeat<string>(null, dimensions.MaxColNum).ToList();
+
+            reader.ReadFirstChild();
+
+            do
+            {
+                if (reader.ElementType != typeof(Cell)) continue;
+                Cell c = (Cell)reader.LoadCurrentElement();
+
+                string cellValue = GetCellValue(c, styleSheet, sharedStringTable);
+                var colName = c.GetAttributes().First().Value;
+                var index = GetColNum(colName) - 1;
+                rowValues[index] = cellValue;
+            } while (reader.ReadNextSibling());
+
+            return rowValues;
+        }
+
+        internal static string GetCellValue(Cell excelCell, Stylesheet styleSheet, SharedStringTable sharedStringTable)
+        {
+            string value;
+            if (excelCell == null ||
+                string.IsNullOrWhiteSpace(excelCell.InnerText))
+                return null;
+            if (excelCell.DataType == null)
+            {
+                return GetCellValueWithoutConsideringDataType(excelCell, styleSheet);
+            }
+
+            value = excelCell.InnerText;
+            //If none of the below cases are executed, return the innerText            
+            switch (excelCell.DataType.Value)
+            {
+                case CellValues.String:
+                    value = excelCell.CellValue.InnerText;
+                    break;
+                case CellValues.SharedString:
+                    value = GetSharedStringItem(excelCell.CellValue, sharedStringTable);
+                    break;
+                case CellValues.Boolean:
+                    switch (value)
+                    {
+                        case "0": value = "FALSE"; break;
+                        default: value = "TRUE"; break;
+                    }
+                    break;
+            }
+            return value;
+        }
+
+        internal static string GetCellValueWithoutConsideringDataType(Cell excelCell, Stylesheet styleSheet)
+        {
+            CellFormat cellFormat = GetCellFormat(excelCell, styleSheet);
+            if (cellFormat != null)
+            {
+                return GetFormatedValue(excelCell, cellFormat, styleSheet.NumberingFormats);
+            }
+            else
+            {
+                var num = double.Parse(excelCell.CellValue.InnerText, CultureInfo.InvariantCulture);
+                return num.ToString(CultureInfo.InvariantCulture);
+            }
+        }
+
+        internal static string GetFormatedValue(Cell cell, CellFormat cellformat, NumberingFormats numberingFormats)
+        {
+            string value = null;
+            string format = null;
+
+            if (!TryGetFormat(cellformat, numberingFormats, out format))
+            {
+                value = cell.InnerText;
+            }
+            else if (OpenXmlConstants.DateTimeNumberingFormats.Contains(cellformat.NumberFormatId))
+            {
+                var datetime = DateTime.FromOADate(double.Parse(cell.InnerText));
+                value = datetime.ToString(format, CultureInfo.InvariantCulture);
+            }
+            else
+            {
+                var num = double.Parse(cell.InnerText, CultureInfo.InvariantCulture);
+                value = num.ToString(format, CultureInfo.InvariantCulture);
+            }
+
+            return value;
+        }
+
+        internal static string GetSharedStringItem(CellValue cellValue, SharedStringTable sharedStringTable)
+        {
+            if (sharedStringTable == null ||
+                sharedStringTable.Count == 0)
+            {
+                return null;
+            }
+
+            var index = int.Parse(cellValue.InnerText);
+            var sharedStringItem = sharedStringTable.Elements<SharedStringItem>().ElementAt(index);
+            return sharedStringItem.Text.Text;
+        }
+
+        internal static bool TryGetFormat(CellFormat cellformat, NumberingFormats numberingFormats, out string format)
         {
             format = null;
             return cellformat.NumberFormatId != 0 &&
                 cellformat.ApplyNumberFormat != null &&
                 cellformat.ApplyNumberFormat.Value &&
                 (OpenXmlConstants.DefaultNumberingFormats.TryGetValue(cellformat.NumberFormatId, out format) ||
-                TryGetNumberingFormatInStyles(spreadsheetDoc, cellformat.NumberFormatId, out format));
+                TryGetNumberingFormatInStyles(cellformat.NumberFormatId, numberingFormats, out format));
         }
 
-        #region private helpers
-
-        private static CellFormat GetCellFormat(SpreadsheetDocument spreadsheetDoc, Cell cell)
+        internal static CellFormat GetCellFormat(Cell cell, Stylesheet styleSheet)
         {
-            if (cell.StyleIndex == null ||
-                !HasCellFormats(spreadsheetDoc))
+            if (cell.StyleIndex == null)
                 return null;
 
             int styleIndex = (int)cell.StyleIndex.Value;
-            return (CellFormat)spreadsheetDoc
-                .WorkbookPart
-                .WorkbookStylesPart
-                .Stylesheet
+            return styleSheet
                 .CellFormats
-                .ElementAt(styleIndex);
+                .ElementAt(styleIndex) as CellFormat;
         }
 
-        private static bool TryGetNumberingFormatInStyles(SpreadsheetDocument spreadsheetDoc, uint numberingFormatId, out string format)
+        internal static bool TryGetNumberingFormatInStyles(uint numberingFormatId, NumberingFormats numberingFormats, out string format)
         {
             format = null;
 
-            if (!HasNumberingFormats(spreadsheetDoc)) return false;
+            if (numberingFormats == null ||
+                numberingFormats.Count == 0)
+            {
+                return false;
+            }
 
-            var numberingFormat = spreadsheetDoc
-                .WorkbookPart
-                .WorkbookStylesPart
-                .Stylesheet
-                .NumberingFormats
+            var numberingFormat = numberingFormats
                 .Elements<NumberingFormat>()
                 .Where(i => i.NumberFormatId.Value == numberingFormatId)
                 .FirstOrDefault();
@@ -118,7 +236,7 @@ namespace XlsxSaxReader
             return format != null;
         }
 
-        private static int GetColNum(string colName)
+        internal static int GetColNum(string colName)
         {
             var colNum = 1;
             foreach (var c in colName)
@@ -131,7 +249,7 @@ namespace XlsxSaxReader
             return colNum;
         }
 
-        private static int GetRowCount(string endDimension)
+        internal static int GetRowCount(string endDimension)
         {
             var rowCount = 0;
             for (int i = 0; i < endDimension.Length; i++)
@@ -145,42 +263,9 @@ namespace XlsxSaxReader
             return rowCount;
         }
 
-        private static int GetCharIndex(char c)
+        internal static int GetCharIndex(char c)
         {
             return c % 32;
         }
-
-        private static bool HasCellFormats(SpreadsheetDocument spreadsheetDoc)
-        {
-            return HasStylesheet(spreadsheetDoc) &&
-                spreadsheetDoc.WorkbookPart.WorkbookStylesPart.Stylesheet.CellFormats != null &&
-                spreadsheetDoc.WorkbookPart.WorkbookStylesPart.Stylesheet.CellFormats.Count > 0;
-        }
-
-        private static bool HasNumberingFormats(SpreadsheetDocument spreadsheetDoc)
-        {
-            return HasStylesheet(spreadsheetDoc) &&
-                spreadsheetDoc.WorkbookPart.WorkbookStylesPart.Stylesheet.NumberingFormats != null &&
-                spreadsheetDoc.WorkbookPart.WorkbookStylesPart.Stylesheet.NumberingFormats.Count > 0;
-        }
-
-        private static bool HasStylesheet(SpreadsheetDocument spreadsheetDoc)
-        {
-            return HasWorkbookStylesPart(spreadsheetDoc) &&
-                spreadsheetDoc.WorkbookPart.WorkbookStylesPart.Stylesheet != null;
-        }
-
-        private static bool HasWorkbookStylesPart(SpreadsheetDocument spreadsheetDoc)
-        {
-            return HasWorkbookPart(spreadsheetDoc) &&
-                spreadsheetDoc.WorkbookPart.WorkbookStylesPart != null;
-        }
-
-        private static bool HasWorkbookPart(SpreadsheetDocument spreadsheetDoc)
-        {
-            return spreadsheetDoc.WorkbookPart != null;
-        }
-
-        #endregion
     }
 }
