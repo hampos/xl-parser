@@ -5,6 +5,11 @@ The exporter uses `OpenXml SDK 2.5` to export xlsx data with paging support.
 Page size is required so the reader can work on a fixed page size while exporting.
 The result is a `List<List<string>>` to offer an easy way to enumerate the data.
 
+The exporter was built to be used on a server environment for simple exporting purposes, 
+where it wasn't possible to use a driver and to overcome out-of-memory situations in case of large spreadsheets.
+
+Current version supports only exporting the first sheet by default. 
+
 Example usage (see `ConsoleApp` as well)
 
 ```
@@ -45,8 +50,5 @@ do
 
 return rows;
 ```
-
-The exporter was built to be used on a server environment for simple exporting purposes, 
-where it wasn't possible to use a driver and to overcome out-of-memory situations in case of large spreadsheets.
 
 Feel free to send your feedback or fork the project.
