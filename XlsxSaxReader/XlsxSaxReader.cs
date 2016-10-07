@@ -1,39 +1,55 @@
-﻿using DocumentFormat.OpenXml.Packaging;
+﻿using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using DocumentFormat.OpenXml;
 
 namespace XlsxSaxReader
 {
     public class XlsxSaxReader
     {
         private readonly string _path;
-        private readonly SharedStringTable _sharedStringTable;
-        private readonly SpreadsheetDocument _spreadsheetDoc;
-        private readonly Worksheet _worksheet;
-        private readonly OpenXmlReader _openXmlReader;
-        private readonly Dictionary<uint, string> _cellFormats;
-        private int lastRequestPage = 0;
+        private readonly int _pageSize;
 
-        public XlsxSaxReader(string path)
+        private SpreadsheetDocument _spreadsheetDoc;
+        private WorksheetPart _worksheetPart;
+
+        private OpenXmlReader _openXmlReader;
+        private int _nextPageNum = 1;
+
+        public XlsxSaxReader(string path, int pageSize)
         {
+            if (string.IsNullOrWhiteSpace(path)) throw new ArgumentNullException("path");
+            if (pageSize < 1) throw new ArgumentException("PageSize must be a positive value");
+
             _path = path;
+            _pageSize = pageSize;
 
-            _spreadsheetDoc = SpreadsheetDocument.Open(path, false);
-
-            var sheet = _spreadsheetDoc.WorkbookPart.Workbook.Descendants<Sheet>().First();
-            var worksheetPart = (WorksheetPart)_spreadsheetDoc.WorkbookPart.GetPartById(sheet.Id);
-            _openXmlReader = OpenXmlHelpers.GetOpenXmlReader(worksheetPart);
-            _cellFormats = OpenXmlHelpers.GetCellFormats(_spreadsheetDoc);
-            Dimensions = OpenXmlHelpers.GetDimensions(_openXmlReader);
+            Setup(path);
         }
 
         public XlsxSheetDimensions Dimensions { get; private set; }
+
+        public List<List<string>> Read(int page)
+        {
+            if (page * _pageSize > Dimensions.MaxRowNum + _pageSize)
+                return new List<List<string>>();
+
+            Setup(_path, page);
+
+            var rows = OpenXmlHelpers.GetRows(
+                page,
+                _pageSize,
+                Dimensions,
+                _openXmlReader,
+                _spreadsheetDoc.WorkbookPart.WorkbookStylesPart.Stylesheet,
+                _spreadsheetDoc.WorkbookPart.SharedStringTablePart.SharedStringTable);
+
+            _nextPageNum = page + 1;
+
+            return rows;
+        }
 
         public void Dispose()
         {
@@ -43,6 +59,48 @@ namespace XlsxSaxReader
                 _openXmlReader.Dispose();
             }
 
+            if (_spreadsheetDoc != null)
+            {
+                _spreadsheetDoc.Close();
+                _spreadsheetDoc.Dispose();
+            }
+        }
+
+        private void Setup(string path, int page = 0)
+        {
+            if (page == 0)
+            {
+                Dimensions = OpenXmlHelpers.GetDimensions(path);
+                return;
+            }
+
+            if (page > 1 && page == _nextPageNum)
+            {
+                return;
+            }
+
+            DisposeReader();
+            DisposeDocument();
+
+            _spreadsheetDoc = SpreadsheetDocument.Open(path, false);
+            var sheet = _spreadsheetDoc.WorkbookPart.Workbook.Descendants<Sheet>().First();
+            _worksheetPart = (WorksheetPart)_spreadsheetDoc.WorkbookPart.GetPartById(sheet.Id);
+
+            _openXmlReader = OpenXmlReader.Create(_worksheetPart);
+            OpenXmlHelpers.SkipRows(_openXmlReader, page, _pageSize);
+        }
+
+        private void DisposeReader()
+        {
+            if (_openXmlReader != null)
+            {
+                _openXmlReader.Close();
+                _openXmlReader.Dispose();
+            }
+        }
+
+        private void DisposeDocument()
+        {
             if (_spreadsheetDoc != null)
             {
                 _spreadsheetDoc.Close();
