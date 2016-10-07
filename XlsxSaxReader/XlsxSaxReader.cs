@@ -7,7 +7,7 @@ using System.Linq;
 
 namespace XlsxSaxReader
 {
-    public class XlsxSaxReader
+    public class XlsxSaxReader : IXlsxSaxReader
     {
         private readonly string _path;
         private readonly int _pageSize;

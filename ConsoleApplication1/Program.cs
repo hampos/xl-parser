@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using XlsxSaxReader;
 
 namespace ConsoleApplication1
 {
@@ -19,7 +20,7 @@ namespace ConsoleApplication1
                 path = Console.ReadLine();
             }
 
-            var xlsxSaxReader = new XlsxSaxReader.XlsxSaxReader(path, 1000);
+            IXlsxSaxReader xlsxSaxReader = new XlsxSaxReader.XlsxSaxReader(path, 1000);
 
             Console.WriteLine();
             Console.WriteLine("Opened XLSX found at: " + path);
