@@ -2,7 +2,7 @@
 
 namespace XlsxSaxReader
 {
-    public class OpenXmlConstants
+    internal class OpenXmlConstants
     {
         static OpenXmlConstants()
         {
@@ -44,7 +44,7 @@ namespace XlsxSaxReader
             };
         }
 
-        public static Dictionary<uint, string> DefaultNumberingFormats;
-        public static List<uint> DateTimeNumberingFormats;
+        internal static Dictionary<uint, string> DefaultNumberingFormats;
+        internal static List<uint> DateTimeNumberingFormats;
     }
 }
