@@ -32,7 +32,7 @@ namespace ConsoleApplication1
             Console.WriteLine();
 
             int page = 1;
-            var rows = new List<List<string>>();
+            var rows = new List<List<string>>(xlsxSaxReader.Dimensions.MaxRowNum);
 
             try
             {
