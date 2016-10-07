@@ -6,7 +6,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 
-namespace XlsxSaxReader
+namespace XlsxSaxExporter
 {
     internal class OpenXmlHelpers
     {

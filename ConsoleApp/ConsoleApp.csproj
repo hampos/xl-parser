@@ -7,8 +7,8 @@
     <ProjectGuid>{74C33902-515C-456B-9653-5073D60BC613}</ProjectGuid>
     <OutputType>Exe</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>ConsoleApplication1</RootNamespace>
-    <AssemblyName>ConsoleApplication1</AssemblyName>
+    <RootNamespace>ConsoleApp</RootNamespace>
+    <AssemblyName>ConsoleApp</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
   </PropertyGroup>
@@ -49,9 +49,9 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\XlsxSaxReader\XlsxSaxReader.csproj">
+    <ProjectReference Include="..\XlsxSaxExporter\XlsxSaxExporter.csproj">
       <Project>{3e56319a-e634-4e03-8a96-a608b8ff83f2}</Project>
-      <Name>XlsxSaxReader</Name>
+      <Name>XlsxSaxExporter</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

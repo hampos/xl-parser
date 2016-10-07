@@ -1,4 +1,4 @@
-﻿namespace XlsxSaxReader
+﻿namespace XlsxSaxExporter
 {
     public class XlsxSheetDimensions
     {

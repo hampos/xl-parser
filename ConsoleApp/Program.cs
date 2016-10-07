@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using XlsxSaxReader;
+using XlsxSaxExporter;
 
-namespace ConsoleApplication1
+namespace ConsoleApp
 {
     class Program
     {
@@ -14,13 +14,18 @@ namespace ConsoleApplication1
                 path = args[0];
             }
 
-            while(string.IsNullOrWhiteSpace(path))
+            while (string.IsNullOrWhiteSpace(path))
             {
                 Console.WriteLine("Enter the xlsx file path: ");
                 path = Console.ReadLine();
             }
 
-            IXlsxSaxReader xlsxSaxReader = new XlsxSaxReader.XlsxSaxReader(path, 1000);
+            Export(path);
+        }
+
+        static void Export(string path)
+        {
+            IXlsxSaxReader xlsxSaxReader = new XlsxSaxReader(path, 1000);
 
             Console.WriteLine();
             Console.WriteLine("Opened XLSX found at: " + path);

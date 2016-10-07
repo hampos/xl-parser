@@ -5,7 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace XlsxSaxReader
+namespace XlsxSaxExporter
 {
     public class XlsxSaxReader : IXlsxSaxReader
     {

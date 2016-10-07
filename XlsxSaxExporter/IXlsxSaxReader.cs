@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace XlsxSaxReader
+namespace XlsxSaxExporter
 {
     public interface IXlsxSaxReader
     {

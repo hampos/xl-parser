@@ -7,8 +7,8 @@
     <ProjectGuid>{3E56319A-E634-4E03-8A96-A608B8FF83F2}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>XlsxSaxReader</RootNamespace>
-    <AssemblyName>XlsxSaxReader</AssemblyName>
+    <RootNamespace>XlsxSaxExporter</RootNamespace>
+    <AssemblyName>XlsxSaxExporter</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
   </PropertyGroup>
