@@ -72,8 +72,12 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="ExporterTests.cs" />
     <Compile Include="OpenXmlHelpersTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="TestHelpers.cs" />
+    <Compile Include="XlsxSaxReaderTests.cs" />
+    <Compile Include="XlsxSheetDimensionsTests.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
