@@ -16,9 +16,8 @@ Example usage (see `ConsoleApp` as well)
 using XlsxSaxExporter;
 
 var path = "c:\\test.xlsx";
-var pageSize = 1000;
 
-var rows = Exporter.Export(path, pageSize);
+var rows = Exporter.Export(path);
 
 return rows;
 ```
