@@ -1,12 +1,11 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 
 namespace XlsxSaxExporter
 {
-    public interface IXlsxSaxReader
+    public interface IXlsxSaxReader : IDisposable
     {
         XlsxSheetDimensions Dimensions { get; }
-
-        void Dispose();
         List<List<string>> Read(int page);
     }
 }
