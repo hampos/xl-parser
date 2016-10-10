@@ -177,6 +177,13 @@ namespace XlsxSaxExporter
             {
                 var datetime = DateTime.FromOADate(double.Parse(cell.InnerText));
                 value = datetime.ToString(format, CultureInfo.InvariantCulture);
+
+                DateTime correctDateTime = DateTime.MinValue;
+                if (!DateTime.TryParse(value, out correctDateTime))
+                {
+                    format = format.Replace("m", "M");
+                    value = datetime.ToString(format, CultureInfo.InvariantCulture);
+                }
             }
             else
             {
