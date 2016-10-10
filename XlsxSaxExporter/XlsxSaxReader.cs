@@ -18,7 +18,7 @@ namespace XlsxSaxExporter
         private OpenXmlReader _openXmlReader;
         private int _nextPageNum = 1;
 
-        public XlsxSaxReader(string path, int pageSize)
+        public XlsxSaxReader(string path, int pageSize = 1000)
         {
             if (string.IsNullOrWhiteSpace(path)) throw new ArgumentNullException("path");
             if (pageSize < 1) throw new ArgumentException("PageSize must be a positive value");
@@ -33,8 +33,8 @@ namespace XlsxSaxExporter
 
         public List<List<string>> Read(int page)
         {
-            if (page * _pageSize > Dimensions.MaxRowNum + _pageSize)
-                return new List<List<string>>();
+            //if (page * _pageSize > Dimensions.MaxRowNum)
+            //    return new List<List<string>>();
 
             Setup(_path, page);
 
@@ -43,8 +43,8 @@ namespace XlsxSaxExporter
                 _pageSize,
                 Dimensions,
                 _openXmlReader,
-                _spreadsheetDoc.WorkbookPart.WorkbookStylesPart.Stylesheet,
-                _spreadsheetDoc.WorkbookPart.SharedStringTablePart.SharedStringTable);
+                _spreadsheetDoc.WorkbookPart.WorkbookStylesPart == null ? null : _spreadsheetDoc.WorkbookPart.WorkbookStylesPart.Stylesheet,
+                _spreadsheetDoc.WorkbookPart.SharedStringTablePart == null ? null : _spreadsheetDoc.WorkbookPart.SharedStringTablePart.SharedStringTable);
 
             _nextPageNum = page + 1;
 
@@ -87,7 +87,7 @@ namespace XlsxSaxExporter
             _worksheetPart = (WorksheetPart)_spreadsheetDoc.WorkbookPart.GetPartById(sheet.Id);
 
             _openXmlReader = OpenXmlReader.Create(_worksheetPart);
-            OpenXmlHelpers.SkipRows(_openXmlReader, page, _pageSize);
+            OpenXmlHelpers.SkipRows(_openXmlReader, (page - 1) * _pageSize);
         }
 
         private void DisposeReader()
