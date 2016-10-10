@@ -50,4 +50,6 @@ do
 return rows;
 ```
 
+Make sure to add a reference to `WindowsBase` since it is required by `OpenXml SDK`, the code doesn't compile without it.
+
 Feel free to send your feedback or fork the project.
