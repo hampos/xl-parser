@@ -56,4 +56,4 @@ Feel free to send your feedback or fork the project.
 
 **Important notice**
 
-Since OpenXmlReader is thread safe ([MSDN](https://msdn.microsoft.com/en-us/library/documentformat.openxml.openxmlreader(v=office.15).aspx)) only when declared as a public static property, the XlsxSaxReader is not guarranted to be thread safe.
+Since `OpenXmlReader` is thread safe ([MSDN](https://msdn.microsoft.com/en-us/library/documentformat.openxml.openxmlreader(v=office.15).aspx)) only when declared as a `public static` property. As a result, `XlsxSaxReader` is not guarranted to be thread safe.
