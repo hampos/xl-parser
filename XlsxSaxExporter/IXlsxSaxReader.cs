@@ -6,6 +6,6 @@ namespace XlsxSaxExporter
     public interface IXlsxSaxReader : IDisposable
     {
         XlsxSheetDimensions Dimensions { get; }
-        List<List<string>> Read(int page, int pageSize = 0);
+        IList<IList<string>> Read(int page, int pageSize = 0);
     }
 }

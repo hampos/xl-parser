@@ -73,15 +73,15 @@ namespace XlsxSaxExporter
             }
         }
 
-        internal static List<List<string>> GetRows(int page, int pageSize, XlsxSheetDimensions dimensions, OpenXmlReader reader, Stylesheet styleSheet, SharedStringTable sharedStringTable)
+        internal static IList<IList<string>> GetRows(int page, int pageSize, XlsxSheetDimensions dimensions, OpenXmlReader reader, Stylesheet styleSheet, SharedStringTable sharedStringTable)
         {
             if (reader.EOF ||
                page > Math.Ceiling((decimal)dimensions.MaxRowNum / pageSize))
             {
-                return new List<List<string>>();
+                return new List<IList<string>>();
             }
 
-            var result = new List<List<string>>(pageSize);
+            var result = new List<IList<string>>(pageSize);
             do
             {
                 var row = GetRow(page, pageSize, dimensions, reader, styleSheet, sharedStringTable);
@@ -95,7 +95,7 @@ namespace XlsxSaxExporter
             return result;
         }
 
-        internal static List<string> GetRow(int page, int pageSize, XlsxSheetDimensions dimensions, OpenXmlReader reader, Stylesheet styleSheet, SharedStringTable sharedStringTable)
+        internal static IList<string> GetRow(int page, int pageSize, XlsxSheetDimensions dimensions, OpenXmlReader reader, Stylesheet styleSheet, SharedStringTable sharedStringTable)
         {
             if (reader.EOF) return null;
 

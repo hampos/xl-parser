@@ -31,7 +31,7 @@ namespace XlsxSaxExporter
 
         public XlsxSheetDimensions Dimensions { get; private set; }
 
-        public List<List<string>> Read(int page, int pageSize = 0)
+        public IList<IList<string>> Read(int page, int pageSize = 0)
         {
             Setup(_path, page);
 
