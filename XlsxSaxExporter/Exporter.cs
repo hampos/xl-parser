@@ -4,23 +4,24 @@ namespace XlsxSaxExporter
 {
     public class Exporter
     {
-        public static List<List<string>> Export(string path, int pageSize)
+        public static List<List<string>> Export(string path, int internalPageSize = 10000)
         {
-            IXlsxSaxReader xlsxSaxReader = new XlsxSaxReader(path, pageSize);
-
-            int page = 1;
-            var rows = new List<List<string>>(xlsxSaxReader.Dimensions.MaxRowNum);
-
-            do
+            using (IXlsxSaxReader xlsxSaxReader = new XlsxSaxReader(path, internalPageSize))
             {
-                var result = xlsxSaxReader.Read(page++);
-                if (result.Count == 0)
-                    break;
+                int page = 1;
+                var rows = new List<List<string>>(xlsxSaxReader.Dimensions.MaxRowNum);
 
-                rows.AddRange(result);
-            } while (true);
+                do
+                {
+                    var result = xlsxSaxReader.Read(page++);
+                    if (result.Count == 0)
+                        break;
 
-            return rows;
+                    rows.AddRange(result);
+                } while (true);
+
+                return rows;
+            };
         }
     }
 }
