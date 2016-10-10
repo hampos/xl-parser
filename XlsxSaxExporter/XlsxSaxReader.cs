@@ -31,16 +31,13 @@ namespace XlsxSaxExporter
 
         public XlsxSheetDimensions Dimensions { get; private set; }
 
-        public List<List<string>> Read(int page)
+        public List<List<string>> Read(int page, int pageSize = 0)
         {
-            //if (page * _pageSize > Dimensions.MaxRowNum)
-            //    return new List<List<string>>();
-
             Setup(_path, page);
 
             var rows = OpenXmlHelpers.GetRows(
                 page,
-                _pageSize,
+                pageSize == 0 ? _pageSize : pageSize,
                 Dimensions,
                 _openXmlReader,
                 _spreadsheetDoc.WorkbookPart.WorkbookStylesPart == null ? null : _spreadsheetDoc.WorkbookPart.WorkbookStylesPart.Stylesheet,
