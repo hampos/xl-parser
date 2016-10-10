@@ -2,6 +2,9 @@
 {
     public class XlsxSheetDimensions
     {
+        public XlsxSheetDimensions()
+        { }
+
         public XlsxSheetDimensions(int minRowNum, int maxRowNum, int minColNum, int maxColNum)
         {
             MinRowNum = minRowNum;
