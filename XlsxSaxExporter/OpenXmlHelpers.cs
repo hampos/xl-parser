@@ -33,8 +33,8 @@ namespace XlsxSaxExporter
                         var dimensions = attr.Split(':');
 
                         return new XlsxSheetDimensions(
-                            GetRowCount(dimensions[0]),
-                            GetRowCount(dimensions[1]),
+                            GetRowNum(dimensions[0]),
+                            GetRowNum(dimensions[1]),
                             GetColNum(dimensions[0]),
                             GetColNum(dimensions[1])
                             );
@@ -45,15 +45,14 @@ namespace XlsxSaxExporter
             }
         }
 
-        internal static void SkipRows(OpenXmlReader reader, int page, int pageSize)
+        internal static void SkipRows(OpenXmlReader reader, int totalRowsToSkip)
         {
             MoveReaderToFirstRow(reader);
 
-            if (page == 0) return;
-            if (pageSize == 0) return;
+            if (totalRowsToSkip == 0) return;
 
-            var startIndex = (page - 1) * pageSize + 1;
             int rowNum = 0;
+
             do
             {
                 if (reader.HasAttributes)
@@ -61,12 +60,26 @@ namespace XlsxSaxExporter
                     rowNum = Convert.ToInt32(reader.Attributes.First(a => a.LocalName == "r").Value);
                 }
             }
-            while (Convert.ToInt32(rowNum) < startIndex && reader.ReadNextSibling());
+            while (reader.ReadNextSibling() && rowNum < totalRowsToSkip);
+        }
+
+        internal static void MoveReaderToFirstRow(OpenXmlReader reader)
+        {
+            while (reader.Read())
+            {
+                if (reader.ElementType != typeof(Row)) continue;
+
+                break;
+            }
         }
 
         internal static List<List<string>> GetRows(int page, int pageSize, XlsxSheetDimensions dimensions, OpenXmlReader reader, Stylesheet styleSheet, SharedStringTable sharedStringTable)
         {
-            if (reader.EOF) return new List<List<string>>();
+            if (reader.EOF ||
+               page > Math.Ceiling((decimal)dimensions.MaxRowNum / pageSize))
+            {
+                return new List<List<string>>();
+            }
 
             var result = new List<List<string>>(pageSize);
             do
@@ -80,16 +93,6 @@ namespace XlsxSaxExporter
             while (reader.ReadNextSibling() && result.Count < pageSize);
 
             return result;
-        }
-
-        internal static void MoveReaderToFirstRow(OpenXmlReader reader)
-        {
-            while (reader.Read())
-            {
-                if (reader.ElementType != typeof(Row)) continue;
-
-                break;
-            }
         }
 
         internal static List<string> GetRow(int page, int pageSize, XlsxSheetDimensions dimensions, OpenXmlReader reader, Stylesheet styleSheet, SharedStringTable sharedStringTable)
@@ -126,7 +129,7 @@ namespace XlsxSaxExporter
             }
 
             value = excelCell.InnerText;
-            //If none of the below cases are executed, return the innerText            
+
             switch (excelCell.DataType.Value)
             {
                 case CellValues.String:
@@ -143,6 +146,7 @@ namespace XlsxSaxExporter
                     }
                     break;
             }
+
             return value;
         }
 
@@ -185,8 +189,7 @@ namespace XlsxSaxExporter
 
         internal static string GetSharedStringItem(CellValue cellValue, SharedStringTable sharedStringTable)
         {
-            if (sharedStringTable == null ||
-                sharedStringTable.Count == 0)
+            if (sharedStringTable == null)
             {
                 return null;
             }
@@ -199,7 +202,8 @@ namespace XlsxSaxExporter
         internal static bool TryGetFormat(CellFormat cellformat, NumberingFormats numberingFormats, out string format)
         {
             format = null;
-            return cellformat.NumberFormatId != 0 &&
+            return cellformat.NumberFormatId != null &&
+                cellformat.NumberFormatId != 0 &&
                 cellformat.ApplyNumberFormat != null &&
                 cellformat.ApplyNumberFormat.Value &&
                 (OpenXmlConstants.DefaultNumberingFormats.TryGetValue(cellformat.NumberFormatId, out format) ||
@@ -221,8 +225,7 @@ namespace XlsxSaxExporter
         {
             format = null;
 
-            if (numberingFormats == null ||
-                numberingFormats.Count == 0)
+            if (numberingFormats == null)
             {
                 return false;
             }
@@ -236,10 +239,10 @@ namespace XlsxSaxExporter
             return format != null;
         }
 
-        internal static int GetColNum(string colName)
+        internal static int GetColNum(string cellRef)
         {
             var colNum = 1;
-            foreach (var c in colName)
+            foreach (var c in cellRef)
             {
                 if (!char.IsLetter(c))
                     break;
@@ -249,15 +252,15 @@ namespace XlsxSaxExporter
             return colNum;
         }
 
-        internal static int GetRowCount(string endDimension)
+        internal static int GetRowNum(string cellRef)
         {
             var rowCount = 0;
-            for (int i = 0; i < endDimension.Length; i++)
+            for (int i = 0; i < cellRef.Length; i++)
             {
-                if (char.IsLetter(endDimension[i]))
+                if (char.IsLetter(cellRef[i]))
                     continue;
 
-                rowCount = Convert.ToInt32(endDimension.Substring(i, endDimension.Length - i));
+                rowCount = Convert.ToInt32(cellRef.Substring(i, cellRef.Length - i));
                 break;
             }
             return rowCount;
