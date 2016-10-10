@@ -34,7 +34,7 @@ var pageSize = 1000;
 IXlsxSaxReader xlsxSaxReader = new XlsxSaxReader(path, pageSize);
 
 int page = 1;
-var rows = new List<List<string>>(xlsxSaxReader.Dimensions.MaxRowNum);
+var rows = new List<IList<string>>(xlsxSaxReader.Dimensions.MaxRowNum);
 
 do
 {
@@ -53,3 +53,7 @@ return rows;
 Make sure to add a reference to `WindowsBase` since it is required by `OpenXml SDK`, the code doesn't compile without it.
 
 Feel free to send your feedback or fork the project.
+
+**Important notice**
+
+Since OpenXmlReader is thread safe ([MSDN](https://msdn.microsoft.com/en-us/library/documentformat.openxml.openxmlreader(v=office.15).aspx)) only when declared as a public static property, the XlsxSaxReader is not guarranted to be thread safe.
