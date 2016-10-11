@@ -57,3 +57,5 @@ Feel free to send your feedback or fork the project.
 **Important notice**
 
 Since `OpenXmlReader` is thread safe ([MSDN](https://msdn.microsoft.com/en-us/library/documentformat.openxml.openxmlreader(v=office.15).aspx)) only when declared as a `public static` property. As a result, `XlsxSaxReader` is not guarranteed to be thread safe.
+
+Moreover, at the time of this writing, `Open XML SDK` is already at version `2.6`, as found [here](https://github.com/OfficeDev/Open-XML-SDK). This version solves known issues with `System.IO.Packaging` from `WindowsBase`. Unfortunately, no nuget package exists yet, so it is recommended to build those sources and then add references to `DocumentFormat.OpenXml.dll` and `System.IO.Packaging.dll`. If you follow this road, make sure to remove the sdk from nuget packages as well as the referenced `WindowsBase` library.
