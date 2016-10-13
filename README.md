@@ -1,5 +1,5 @@
 # xl-parser
-A blazing fast SAX reader for xlsx files with paging and low memory consumption
+A blazing fast XL reader with paging and low memory consumption
 
 The exporter uses `OpenXml SDK 2.5` to export xlsx data with paging support.
 Page size is required so the reader can work on a fixed page size while exporting.
